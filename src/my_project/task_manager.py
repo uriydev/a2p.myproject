@@ -62,6 +62,27 @@ class MyAgentTaskManager(InMemoryTaskManager):
                 task_update_event
             )
 
+        # Запрос на дополнительный ввод от клиента
+        ask_message = Message(
+            role="agent",
+            parts=[{
+                "type": "text",
+                "text": "Would you like more messages? (Y/N)"
+            }]
+        )
+        task_update_event = TaskStatusUpdateEvent(
+            id=task_id,
+            status=TaskStatus(
+                state=TaskState.INPUT_REQUIRED,
+                message=ask_message
+            ),
+            final=True,
+        )
+        await self.enqueue_events_for_sse(
+            task_id,
+            task_update_event
+        )
+
     async def on_send_task_subscribe(
         self,
         request: SendTaskStreamingRequest
@@ -69,9 +90,32 @@ class MyAgentTaskManager(InMemoryTaskManager):
         await self.upsert_task(request.params)
 
         task_id = request.params.id
+        received_text = request.params.message.parts[0].text
         sse_event_queue = await self.setup_sse_consumer(task_id=task_id)
 
-        asyncio.create_task(self._stream_3_messages(request))
+        # Если клиент ответил "N", завершить задачу
+        if received_text == "N":
+            task_update_event = TaskStatusUpdateEvent(
+                id=request.params.id,
+                status=TaskStatus(
+                    state=TaskState.COMPLETED,
+                    message=Message(
+                        role="agent",
+                        parts=[{
+                            "type": "text",
+                            "text": "All done!"
+                        }]
+                    )
+                ),
+                final=True,
+            )
+            await self.enqueue_events_for_sse(
+                request.params.id,
+                task_update_event,
+            )
+        else:
+            # Если это не новый запрос и ответ не "N", продолжить стриминг
+            asyncio.create_task(self._stream_3_messages(request))
 
         return self.dequeue_events_for_sse(
             request_id=request.id,
