@@ -215,11 +215,15 @@ name = "my-project"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "google-a2a" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "google-a2a", git = "https://github.com/djsamseng/A2A?subdirectory=samples%2Fpython&branch=prefixPythonPackage" }]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.8" },
+    { name = "google-a2a", git = "https://github.com/djsamseng/A2A?subdirectory=samples%2Fpython&branch=prefixPythonPackage" },
+]
 
 [[package]]
 name = "pycparser"
