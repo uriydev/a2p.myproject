@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 @click.command()
 @click.option("--host", default="localhost")
 @click.option("--port", default=10002)
-def main(host, port):
+@click.option("--ollama-host", default="http://127.0.0.1:11434")
+@click.option("--ollama-model", default=None)
+def main(host, port, ollama_host, ollama_model):
     skill = AgentSkill(
         id="my-project-echo-skill",
         name="Echo Tool",
@@ -26,7 +28,7 @@ def main(host, port):
 
     # создание capabilities и agent_card
     capabilities = AgentCapabilities(
-    streaming=True
+        streaming=False  # We'll leave streaming capabilities as an exercise for the reader
     )
 
     agent_card = AgentCard(
@@ -42,7 +44,10 @@ def main(host, port):
     logging.info(agent_card)
 
     # create our server
-    task_manager = MyAgentTaskManager()
+    task_manager = MyAgentTaskManager(
+        ollama_host=ollama_host,
+        ollama_model=ollama_model,
+    )
     server = A2AServer(
         agent_card=agent_card,
         task_manager=task_manager,
